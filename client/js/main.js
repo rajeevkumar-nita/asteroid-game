@@ -1,7 +1,3 @@
-
-
-
-
 // const socket = io();
 
 // // UI Elements
@@ -19,7 +15,12 @@
 // const restartBtn = document.getElementById('restartBtn');
 // const waitingScreen = document.getElementById('waitingScreen');
 
-// // Canvas
+// // Mobile Buttons
+// const btnLeft = document.getElementById('btnLeft');
+// const btnRight = document.getElementById('btnRight');
+// const btnUp = document.getElementById('btnUp');
+// const btnShoot = document.getElementById('btnShoot');
+
 // const canvas = document.getElementById('gameCanvas');
 // const ctx = canvas.getContext('2d');
 // const scoreboardDiv = document.getElementById('scoreboard');
@@ -72,17 +73,27 @@
 //     canvas.focus();
 // });
 
-// // --- INPUTS ---
+// // --- INPUTS HANDLING (Keyboard + Touch) ---
 // const inputs = { up: false, left: false, right: false };
 
+// // Helper to send updates
+// function sendInput() {
+//     if (!gameActive) return;
+//     socket.emit('input', inputs);
+// }
+
+// // --- A. KEYBOARD ---
 // document.addEventListener('keydown', (e) => {
 //     if (!gameActive) return;
 //     if(['ArrowUp', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+
 //     if (e.key === 'ArrowUp' || e.key === 'w') inputs.up = true;
 //     if (e.key === 'ArrowLeft' || e.key === 'a') inputs.left = true;
 //     if (e.key === 'ArrowRight' || e.key === 'd') inputs.right = true;
+    
 //     if (e.key === ' ' || e.key === 'Spacebar') socket.emit('shoot');
-//     socket.emit('input', inputs);
+    
+//     sendInput();
 // });
 
 // document.addEventListener('keyup', (e) => {
@@ -90,12 +101,48 @@
 //     if (e.key === 'ArrowUp' || e.key === 'w') inputs.up = false;
 //     if (e.key === 'ArrowLeft' || e.key === 'a') inputs.left = false;
 //     if (e.key === 'ArrowRight' || e.key === 'd') inputs.right = false;
-//     socket.emit('input', inputs);
+//     sendInput();
 // });
+
+// // --- B. MOBILE TOUCH ---
+// // Function to handle Touch Start
+// function handleTouchStart(e, key) {
+//     e.preventDefault(); // Browser ka zoom/scroll roko
+//     if (key === 'shoot') {
+//         if(gameActive) socket.emit('shoot');
+//     } else {
+//         inputs[key] = true;
+//         sendInput();
+//     }
+// }
+
+// // Function to handle Touch End
+// function handleTouchEnd(e, key) {
+//     e.preventDefault();
+//     if (key !== 'shoot') {
+//         inputs[key] = false;
+//         sendInput();
+//     }
+// }
+
+// // Add Listeners to Mobile Buttons
+// if(btnLeft) {
+//     btnLeft.addEventListener('touchstart', (e) => handleTouchStart(e, 'left'));
+//     btnLeft.addEventListener('touchend', (e) => handleTouchEnd(e, 'left'));
+    
+//     btnRight.addEventListener('touchstart', (e) => handleTouchStart(e, 'right'));
+//     btnRight.addEventListener('touchend', (e) => handleTouchEnd(e, 'right'));
+    
+//     btnUp.addEventListener('touchstart', (e) => handleTouchStart(e, 'up'));
+//     btnUp.addEventListener('touchend', (e) => handleTouchEnd(e, 'up'));
+    
+//     btnShoot.addEventListener('touchstart', (e) => handleTouchStart(e, 'shoot'));
+// }
 
 // // --- RENDER LOOP ---
 // socket.on('gameState', (state) => {
     
+//     // Waiting Screen Logic
 //     if (!state.active) {
 //         waitingScreen.style.display = 'block'; 
 //         ctx.fillStyle = "#050505";
@@ -151,13 +198,11 @@
 //         const p = players[id];
 //         const isMe = id === socket.id;
         
-//         // Agar player eliminated nahi hai tabhi draw karo
 //         if (!p.eliminated) {
 //             drawShip(p.x, p.y, p.angle, isMe, p.name);
 //         }
 
 //         const color = isMe ? '#00ffff' : '#ff0055';
-//         // UI Me Lives (❤️) aur Score dikhao
 //         const livesIcon = "❤️".repeat(p.lives);
 //         const status = p.eliminated ? "(DEAD)" : "";
         
@@ -200,7 +245,6 @@
 
 
 
-
 const socket = io();
 
 // UI Elements
@@ -228,10 +272,15 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreboardDiv = document.getElementById('scoreboard');
 
+// SERVER WORLD SIZE (Ye wahi hona chahiye jo server.js me hai)
+const SERVER_WIDTH = 800;
+const SERVER_HEIGHT = 600;
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let gameActive = false;
+let shootInterval = null; // Continuous shooting ke liye
 
 // --- BUTTON LISTENERS ---
 createBtn.addEventListener('click', () => {
@@ -269,6 +318,9 @@ socket.on('gameOver', (winnerName) => {
     gameOverModal.style.display = 'block';
     winnerText.innerText = `${winnerName} WINS!`;
     restartBtn.innerText = "Play Again";
+    
+    // Stop shooting if game over
+    if(shootInterval) clearInterval(shootInterval);
 });
 
 socket.on('gameRestarted', () => {
@@ -279,13 +331,12 @@ socket.on('gameRestarted', () => {
 // --- INPUTS HANDLING (Keyboard + Touch) ---
 const inputs = { up: false, left: false, right: false };
 
-// Helper to send updates
 function sendInput() {
     if (!gameActive) return;
     socket.emit('input', inputs);
 }
 
-// --- A. KEYBOARD ---
+// A. KEYBOARD
 document.addEventListener('keydown', (e) => {
     if (!gameActive) return;
     if(['ArrowUp', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
@@ -293,7 +344,6 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowUp' || e.key === 'w') inputs.up = true;
     if (e.key === 'ArrowLeft' || e.key === 'a') inputs.left = true;
     if (e.key === 'ArrowRight' || e.key === 'd') inputs.right = true;
-    
     if (e.key === ' ' || e.key === 'Spacebar') socket.emit('shoot');
     
     sendInput();
@@ -307,45 +357,67 @@ document.addEventListener('keyup', (e) => {
     sendInput();
 });
 
-// --- B. MOBILE TOUCH ---
-// Function to handle Touch Start
+// B. MOBILE TOUCH (Continuous Logic Updated)
 function handleTouchStart(e, key) {
-    e.preventDefault(); // Browser ka zoom/scroll roko
+    e.preventDefault(); 
+    if (!gameActive) return;
+
     if (key === 'shoot') {
-        if(gameActive) socket.emit('shoot');
+        // 1. Turant goli chalao
+        socket.emit('shoot');
+        // 2. Machine Gun Mode: Har 150ms me goli chalao
+        if(shootInterval) clearInterval(shootInterval);
+        shootInterval = setInterval(() => {
+            socket.emit('shoot');
+        }, 150); // Speed adjust kar sakte ho
     } else {
+        // Movement: State true karo (Server loop handle karega)
         inputs[key] = true;
         sendInput();
     }
 }
 
-// Function to handle Touch End
 function handleTouchEnd(e, key) {
     e.preventDefault();
-    if (key !== 'shoot') {
+    if (key === 'shoot') {
+        // Goli chalana band karo
+        if(shootInterval) clearInterval(shootInterval);
+        shootInterval = null;
+    } else {
+        // Movement roko
         inputs[key] = false;
         sendInput();
     }
 }
 
-// Add Listeners to Mobile Buttons
+// Listeners add karo
 if(btnLeft) {
+    // Touchstart = Button dabaya
     btnLeft.addEventListener('touchstart', (e) => handleTouchStart(e, 'left'));
-    btnLeft.addEventListener('touchend', (e) => handleTouchEnd(e, 'left'));
-    
     btnRight.addEventListener('touchstart', (e) => handleTouchStart(e, 'right'));
-    btnRight.addEventListener('touchend', (e) => handleTouchEnd(e, 'right'));
-    
     btnUp.addEventListener('touchstart', (e) => handleTouchStart(e, 'up'));
-    btnUp.addEventListener('touchend', (e) => handleTouchEnd(e, 'up'));
-    
     btnShoot.addEventListener('touchstart', (e) => handleTouchStart(e, 'shoot'));
+
+    // Touchend = Button choda
+    btnLeft.addEventListener('touchend', (e) => handleTouchEnd(e, 'left'));
+    btnRight.addEventListener('touchend', (e) => handleTouchEnd(e, 'right'));
+    btnUp.addEventListener('touchend', (e) => handleTouchEnd(e, 'up'));
+    btnShoot.addEventListener('touchend', (e) => handleTouchEnd(e, 'shoot'));
 }
 
-// --- RENDER LOOP ---
+// --- RENDER LOOP (WITH SCALING) ---
 socket.on('gameState', (state) => {
     
-    // Waiting Screen Logic
+    // --- SCALING CALCULATIONS (New) ---
+    // Hum check karenge ki mobile screen kitni choti hai Server World (800x600) ke mukable
+    const scaleX = canvas.width / SERVER_WIDTH;
+    const scaleY = canvas.height / SERVER_HEIGHT;
+    
+    // Dono me se jo chota scale hai wo use karenge taki aspect ratio kharab na ho
+    // Ya fir 'stretch' karne ke liye alag alag use kar sakte hain. 
+    // Best hai: Full fit (Stretch) taki screen se bahar kuch na jaye.
+    
+    // Waiting Screen
     if (!state.active) {
         waitingScreen.style.display = 'block'; 
         ctx.fillStyle = "#050505";
@@ -369,12 +441,9 @@ socket.on('gameState', (state) => {
     ctx.fillStyle = "#050505";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Timer
-    const minutes = Math.floor(timer / 60);
-    const seconds = Math.floor(timer % 60);
-    if(timerDisplay) {
-        timerDisplay.innerText = `${minutes}:${seconds < 10 ? '0'+seconds : seconds}`;
-    }
+    // --- ZOOM START ---
+    ctx.save(); // Current settings save karo
+    ctx.scale(scaleX, scaleY); // Puri duniya ko mobile screen size me fit karo
 
     // Asteroids
     ctx.strokeStyle = '#777';
@@ -415,16 +484,28 @@ socket.on('gameState', (state) => {
                       </div>`;
     }
     if(scoreboardDiv) scoreboardDiv.innerHTML = scoreHTML;
+
+    // --- ZOOM END ---
+    ctx.restore(); // Wapas normal settings par aao taki UI kharab na ho
+
+    // Timer (UI iske upar draw hoga, scale se effect nahi hoga kyunki HTML div hai)
+    const minutes = Math.floor(timer / 60);
+    const seconds = Math.floor(timer % 60);
+    if(timerDisplay) {
+        timerDisplay.innerText = `${minutes}:${seconds < 10 ? '0'+seconds : seconds}`;
+    }
 });
 
 function drawShip(x, y, angle, isMe, name) {
     ctx.save();
     ctx.translate(x, y);
     ctx.fillStyle = "white";
-    ctx.font = "12px monospace";
+    ctx.font = "14px monospace"; // Font thoda bada kiya
     ctx.textAlign = "center";
     ctx.shadowBlur = 0; 
-    ctx.fillText(name, 0, -25);
+    // Name ko thoda upar adjust kiya taki scale hone par bhi dikhe
+    ctx.fillText(name, 0, -30);
+    
     ctx.rotate(angle);
     const color = isMe ? '#00ffff' : '#ff0055';
     ctx.strokeStyle = color;
