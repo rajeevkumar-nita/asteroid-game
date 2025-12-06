@@ -1,3 +1,6 @@
+
+
+
 // const socket = io();
 
 // // UI Elements
@@ -25,10 +28,15 @@
 // const ctx = canvas.getContext('2d');
 // const scoreboardDiv = document.getElementById('scoreboard');
 
+// // SERVER WORLD SIZE (Ye wahi hona chahiye jo server.js me hai)
+// const SERVER_WIDTH = 800;
+// const SERVER_HEIGHT = 600;
+
 // canvas.width = window.innerWidth;
 // canvas.height = window.innerHeight;
 
 // let gameActive = false;
+// let shootInterval = null; // Continuous shooting ke liye
 
 // // --- BUTTON LISTENERS ---
 // createBtn.addEventListener('click', () => {
@@ -66,6 +74,9 @@
 //     gameOverModal.style.display = 'block';
 //     winnerText.innerText = `${winnerName} WINS!`;
 //     restartBtn.innerText = "Play Again";
+    
+//     // Stop shooting if game over
+//     if(shootInterval) clearInterval(shootInterval);
 // });
 
 // socket.on('gameRestarted', () => {
@@ -76,13 +87,12 @@
 // // --- INPUTS HANDLING (Keyboard + Touch) ---
 // const inputs = { up: false, left: false, right: false };
 
-// // Helper to send updates
 // function sendInput() {
 //     if (!gameActive) return;
 //     socket.emit('input', inputs);
 // }
 
-// // --- A. KEYBOARD ---
+// // A. KEYBOARD
 // document.addEventListener('keydown', (e) => {
 //     if (!gameActive) return;
 //     if(['ArrowUp', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
@@ -90,7 +100,6 @@
 //     if (e.key === 'ArrowUp' || e.key === 'w') inputs.up = true;
 //     if (e.key === 'ArrowLeft' || e.key === 'a') inputs.left = true;
 //     if (e.key === 'ArrowRight' || e.key === 'd') inputs.right = true;
-    
 //     if (e.key === ' ' || e.key === 'Spacebar') socket.emit('shoot');
     
 //     sendInput();
@@ -104,45 +113,67 @@
 //     sendInput();
 // });
 
-// // --- B. MOBILE TOUCH ---
-// // Function to handle Touch Start
+// // B. MOBILE TOUCH (Continuous Logic Updated)
 // function handleTouchStart(e, key) {
-//     e.preventDefault(); // Browser ka zoom/scroll roko
+//     e.preventDefault(); 
+//     if (!gameActive) return;
+
 //     if (key === 'shoot') {
-//         if(gameActive) socket.emit('shoot');
+//         // 1. Turant goli chalao
+//         socket.emit('shoot');
+//         // 2. Machine Gun Mode: Har 150ms me goli chalao
+//         if(shootInterval) clearInterval(shootInterval);
+//         shootInterval = setInterval(() => {
+//             socket.emit('shoot');
+//         }, 150); // Speed adjust kar sakte ho
 //     } else {
+//         // Movement: State true karo (Server loop handle karega)
 //         inputs[key] = true;
 //         sendInput();
 //     }
 // }
 
-// // Function to handle Touch End
 // function handleTouchEnd(e, key) {
 //     e.preventDefault();
-//     if (key !== 'shoot') {
+//     if (key === 'shoot') {
+//         // Goli chalana band karo
+//         if(shootInterval) clearInterval(shootInterval);
+//         shootInterval = null;
+//     } else {
+//         // Movement roko
 //         inputs[key] = false;
 //         sendInput();
 //     }
 // }
 
-// // Add Listeners to Mobile Buttons
+// // Listeners add karo
 // if(btnLeft) {
+//     // Touchstart = Button dabaya
 //     btnLeft.addEventListener('touchstart', (e) => handleTouchStart(e, 'left'));
-//     btnLeft.addEventListener('touchend', (e) => handleTouchEnd(e, 'left'));
-    
 //     btnRight.addEventListener('touchstart', (e) => handleTouchStart(e, 'right'));
-//     btnRight.addEventListener('touchend', (e) => handleTouchEnd(e, 'right'));
-    
 //     btnUp.addEventListener('touchstart', (e) => handleTouchStart(e, 'up'));
-//     btnUp.addEventListener('touchend', (e) => handleTouchEnd(e, 'up'));
-    
 //     btnShoot.addEventListener('touchstart', (e) => handleTouchStart(e, 'shoot'));
+
+//     // Touchend = Button choda
+//     btnLeft.addEventListener('touchend', (e) => handleTouchEnd(e, 'left'));
+//     btnRight.addEventListener('touchend', (e) => handleTouchEnd(e, 'right'));
+//     btnUp.addEventListener('touchend', (e) => handleTouchEnd(e, 'up'));
+//     btnShoot.addEventListener('touchend', (e) => handleTouchEnd(e, 'shoot'));
 // }
 
-// // --- RENDER LOOP ---
+// // --- RENDER LOOP (WITH SCALING) ---
 // socket.on('gameState', (state) => {
     
-//     // Waiting Screen Logic
+//     // --- SCALING CALCULATIONS (New) ---
+//     // Hum check karenge ki mobile screen kitni choti hai Server World (800x600) ke mukable
+//     const scaleX = canvas.width / SERVER_WIDTH;
+//     const scaleY = canvas.height / SERVER_HEIGHT;
+    
+//     // Dono me se jo chota scale hai wo use karenge taki aspect ratio kharab na ho
+//     // Ya fir 'stretch' karne ke liye alag alag use kar sakte hain. 
+//     // Best hai: Full fit (Stretch) taki screen se bahar kuch na jaye.
+    
+//     // Waiting Screen
 //     if (!state.active) {
 //         waitingScreen.style.display = 'block'; 
 //         ctx.fillStyle = "#050505";
@@ -166,12 +197,9 @@
 //     ctx.fillStyle = "#050505";
 //     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-//     // Timer
-//     const minutes = Math.floor(timer / 60);
-//     const seconds = Math.floor(timer % 60);
-//     if(timerDisplay) {
-//         timerDisplay.innerText = `${minutes}:${seconds < 10 ? '0'+seconds : seconds}`;
-//     }
+//     // --- ZOOM START ---
+//     ctx.save(); // Current settings save karo
+//     ctx.scale(scaleX, scaleY); // Puri duniya ko mobile screen size me fit karo
 
 //     // Asteroids
 //     ctx.strokeStyle = '#777';
@@ -212,16 +240,28 @@
 //                       </div>`;
 //     }
 //     if(scoreboardDiv) scoreboardDiv.innerHTML = scoreHTML;
+
+//     // --- ZOOM END ---
+//     ctx.restore(); // Wapas normal settings par aao taki UI kharab na ho
+
+//     // Timer (UI iske upar draw hoga, scale se effect nahi hoga kyunki HTML div hai)
+//     const minutes = Math.floor(timer / 60);
+//     const seconds = Math.floor(timer % 60);
+//     if(timerDisplay) {
+//         timerDisplay.innerText = `${minutes}:${seconds < 10 ? '0'+seconds : seconds}`;
+//     }
 // });
 
 // function drawShip(x, y, angle, isMe, name) {
 //     ctx.save();
 //     ctx.translate(x, y);
 //     ctx.fillStyle = "white";
-//     ctx.font = "12px monospace";
+//     ctx.font = "14px monospace"; // Font thoda bada kiya
 //     ctx.textAlign = "center";
 //     ctx.shadowBlur = 0; 
-//     ctx.fillText(name, 0, -25);
+//     // Name ko thoda upar adjust kiya taki scale hone par bhi dikhe
+//     ctx.fillText(name, 0, -30);
+    
 //     ctx.rotate(angle);
 //     const color = isMe ? '#00ffff' : '#ff0055';
 //     ctx.strokeStyle = color;
@@ -241,6 +281,8 @@
 //     canvas.width = window.innerWidth;
 //     canvas.height = window.innerHeight;
 // });
+
+
 
 
 
@@ -272,7 +314,6 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreboardDiv = document.getElementById('scoreboard');
 
-// SERVER WORLD SIZE (Ye wahi hona chahiye jo server.js me hai)
 const SERVER_WIDTH = 800;
 const SERVER_HEIGHT = 600;
 
@@ -280,7 +321,7 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let gameActive = false;
-let shootInterval = null; // Continuous shooting ke liye
+let shootInterval = null; 
 
 // --- BUTTON LISTENERS ---
 createBtn.addEventListener('click', () => {
@@ -318,8 +359,6 @@ socket.on('gameOver', (winnerName) => {
     gameOverModal.style.display = 'block';
     winnerText.innerText = `${winnerName} WINS!`;
     restartBtn.innerText = "Play Again";
-    
-    // Stop shooting if game over
     if(shootInterval) clearInterval(shootInterval);
 });
 
@@ -328,7 +367,7 @@ socket.on('gameRestarted', () => {
     canvas.focus();
 });
 
-// --- INPUTS HANDLING (Keyboard + Touch) ---
+// --- INPUTS HANDLING ---
 const inputs = { up: false, left: false, right: false };
 
 function sendInput() {
@@ -357,72 +396,57 @@ document.addEventListener('keyup', (e) => {
     sendInput();
 });
 
-// B. MOBILE TOUCH (Continuous Logic Updated)
-function handleTouchStart(e, key) {
-    e.preventDefault(); 
-    if (!gameActive) return;
+// B. MOBILE TOUCH (FIXED LOGIC)
+// Hum ek helper function banayenge jo events ko sahi se bind karega
+function bindTouch(btn, key) {
+    if(!btn) return;
 
-    if (key === 'shoot') {
-        // 1. Turant goli chalao
-        socket.emit('shoot');
-        // 2. Machine Gun Mode: Har 150ms me goli chalao
-        if(shootInterval) clearInterval(shootInterval);
-        shootInterval = setInterval(() => {
+    // 1. Touch START (Ungli rakhi)
+    btn.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Browser ka default action roko (scroll/zoom)
+        if (!gameActive) return;
+
+        if (key === 'shoot') {
             socket.emit('shoot');
-        }, 150); // Speed adjust kar sakte ho
-    } else {
-        // Movement: State true karo (Server loop handle karega)
-        inputs[key] = true;
-        sendInput();
-    }
+            if(shootInterval) clearInterval(shootInterval);
+            shootInterval = setInterval(() => {
+                socket.emit('shoot');
+            }, 150);
+        } else {
+            inputs[key] = true;
+            sendInput();
+        }
+    }, { passive: false }); // 'passive: false' zaroori hai preventDefault ke liye
+
+    // 2. Touch END (Ungli uthayi)
+    btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (key === 'shoot') {
+            if(shootInterval) clearInterval(shootInterval);
+            shootInterval = null;
+        } else {
+            inputs[key] = false;
+            sendInput();
+        }
+    }, { passive: false });
 }
 
-function handleTouchEnd(e, key) {
-    e.preventDefault();
-    if (key === 'shoot') {
-        // Goli chalana band karo
-        if(shootInterval) clearInterval(shootInterval);
-        shootInterval = null;
-    } else {
-        // Movement roko
-        inputs[key] = false;
-        sendInput();
-    }
-}
+// Buttons par logic lagao
+bindTouch(btnLeft, 'left');
+bindTouch(btnRight, 'right');
+bindTouch(btnUp, 'up');
+bindTouch(btnShoot, 'shoot');
 
-// Listeners add karo
-if(btnLeft) {
-    // Touchstart = Button dabaya
-    btnLeft.addEventListener('touchstart', (e) => handleTouchStart(e, 'left'));
-    btnRight.addEventListener('touchstart', (e) => handleTouchStart(e, 'right'));
-    btnUp.addEventListener('touchstart', (e) => handleTouchStart(e, 'up'));
-    btnShoot.addEventListener('touchstart', (e) => handleTouchStart(e, 'shoot'));
 
-    // Touchend = Button choda
-    btnLeft.addEventListener('touchend', (e) => handleTouchEnd(e, 'left'));
-    btnRight.addEventListener('touchend', (e) => handleTouchEnd(e, 'right'));
-    btnUp.addEventListener('touchend', (e) => handleTouchEnd(e, 'up'));
-    btnShoot.addEventListener('touchend', (e) => handleTouchEnd(e, 'shoot'));
-}
-
-// --- RENDER LOOP (WITH SCALING) ---
+// --- RENDER LOOP ---
 socket.on('gameState', (state) => {
-    
-    // --- SCALING CALCULATIONS (New) ---
-    // Hum check karenge ki mobile screen kitni choti hai Server World (800x600) ke mukable
     const scaleX = canvas.width / SERVER_WIDTH;
     const scaleY = canvas.height / SERVER_HEIGHT;
     
-    // Dono me se jo chota scale hai wo use karenge taki aspect ratio kharab na ho
-    // Ya fir 'stretch' karne ke liye alag alag use kar sakte hain. 
-    // Best hai: Full fit (Stretch) taki screen se bahar kuch na jaye.
-    
-    // Waiting Screen
     if (!state.active) {
         waitingScreen.style.display = 'block'; 
         ctx.fillStyle = "#050505";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
         let joinedHTML = '<h3 style="color:white; margin-top:50px;">Players Joined:</h3>';
         for (const id in state.players) {
             joinedHTML += `<div style="color: #0ff;">${state.players[id].name}</div>`;
@@ -437,15 +461,12 @@ socket.on('gameState', (state) => {
 
     const { players, bullets, asteroids, timer } = state;
 
-    // Clear Screen
     ctx.fillStyle = "#050505";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // --- ZOOM START ---
-    ctx.save(); // Current settings save karo
-    ctx.scale(scaleX, scaleY); // Puri duniya ko mobile screen size me fit karo
+    ctx.save();
+    ctx.scale(scaleX, scaleY);
 
-    // Asteroids
     ctx.strokeStyle = '#777';
     ctx.lineWidth = 2;
     asteroids.forEach(a => {
@@ -454,7 +475,6 @@ socket.on('gameState', (state) => {
         ctx.stroke();
     });
 
-    // Bullets
     ctx.fillStyle = '#fff';
     ctx.shadowBlur = 10;
     ctx.shadowColor = '#fff';
@@ -464,7 +484,6 @@ socket.on('gameState', (state) => {
         ctx.fill();
     });
 
-    // Ships
     let scoreHTML = '';
     for (const id in players) {
         const p = players[id];
@@ -477,7 +496,6 @@ socket.on('gameState', (state) => {
         const color = isMe ? '#00ffff' : '#ff0055';
         const livesIcon = "❤️".repeat(p.lives);
         const status = p.eliminated ? "(DEAD)" : "";
-        
         scoreHTML += `<div style="color: ${color}; margin-bottom: 5px;">
                         ${p.name} ${status}<br>
                         Score: ${p.score} | Lives: ${livesIcon}
@@ -485,10 +503,8 @@ socket.on('gameState', (state) => {
     }
     if(scoreboardDiv) scoreboardDiv.innerHTML = scoreHTML;
 
-    // --- ZOOM END ---
-    ctx.restore(); // Wapas normal settings par aao taki UI kharab na ho
+    ctx.restore();
 
-    // Timer (UI iske upar draw hoga, scale se effect nahi hoga kyunki HTML div hai)
     const minutes = Math.floor(timer / 60);
     const seconds = Math.floor(timer % 60);
     if(timerDisplay) {
@@ -500,12 +516,10 @@ function drawShip(x, y, angle, isMe, name) {
     ctx.save();
     ctx.translate(x, y);
     ctx.fillStyle = "white";
-    ctx.font = "14px monospace"; // Font thoda bada kiya
+    ctx.font = "14px monospace";
     ctx.textAlign = "center";
     ctx.shadowBlur = 0; 
-    // Name ko thoda upar adjust kiya taki scale hone par bhi dikhe
     ctx.fillText(name, 0, -30);
-    
     ctx.rotate(angle);
     const color = isMe ? '#00ffff' : '#ff0055';
     ctx.strokeStyle = color;
