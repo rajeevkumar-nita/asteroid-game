@@ -2,66 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Asteroids PvP</title>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-
-    <div id="loginScreen">
-        <h1 class="glow">ASTEROIDS PVP</h1>
-        <div class="input-group" style="margin-bottom: 20px;">
-            <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="10">
-        </div>
-        <div class="row">
-            <div class="box">
-                <h3>Create Game</h3>
-                <button id="createBtn">New Game</button>
-            </div>
-            <div class="box">
-                <h3>Join Game</h3>
-                <input type="text" id="roomCodeInput" placeholder="Enter Code">
-                <button id="joinBtn">Join Game</button>
-            </div>
-        </div>
-        <p id="errorMsg" style="color: red; margin-top: 10px;"></p>
-    </div>
-
-    <div id="gameUI" style="display: none;">
-        
-        <div id="roomInfo">
-            Room: <span id="displayCode" style="color: #0ff;">---</span> | 
-            Time: <span id="timerDisplay" style="color: yellow;">02:00</span>
-        </div>
-        
-        <div id="scoreboard"></div>
-        <canvas id="gameCanvas"></canvas>
-
-        <div id="waitingScreen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white;">
-            <h2 class="glow">WAITING FOR PLAYER 2...</h2>
-            <p style="font-size: 18px;">Share Room Code with your friend to start!</p>
-            <div class="loader" style="margin-top:20px; font-size: 30px;">⏳</div>
-        </div>
-
-        <div id="gameOverModal" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #0ff; padding: 40px; text-align: center; color: white; z-index: 20; border-radius: 10px; box-shadow: 0 0 20px #0ff;">
-            <h1 id="winnerText" style="font-size: 40px; color: #0ff; margin-bottom: 20px;">WINNER!</h1>
-            <button id="restartBtn" style="padding: 10px 20px; font-size: 18px; cursor: pointer; background: #0ff; border: none; font-weight: bold;">Play Again</button>
-        </div>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="js/main.js"></script>
-</body>
-</html> -->
-
-
-
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"> <title>Neon Asteroids PvP</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -118,6 +58,196 @@
             </div>
         </div>
 
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> -->
+
+
+
+
+
+
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Neon Asteroids PvP</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="loginScreen">
+        <h1 class="glow title-font">ASTEROIDS PVP</h1>
+        <div class="input-group">
+            <input type="text" id="usernameInput" placeholder="ENTER PILOT NAME" maxlength="8">
+        </div>
+        <div class="row">
+            <div class="box">
+                <button id="createBtn">CREATE MISSION</button>
+            </div>
+            <div class="box">
+                <input type="text" id="roomCodeInput" placeholder="CODE">
+                <button id="joinBtn">JOIN MISSION</button>
+            </div>
+        </div>
+        <p id="errorMsg"></p>
+    </div>
+
+    <div id="gameUI" style="display: none;">
+        
+        <div id="hud">
+            <div id="p1Panel" class="panel p1-color">
+                <div class="p-name" id="p1Name">PILOT 1</div>
+                <div class="p-score" id="p1Score">0000</div>
+                <div class="p-lives" id="p1Lives">❤️❤️❤️❤️❤️</div>
+            </div>
+
+            <div id="timerPanel">
+                <div class="timer-box">
+                    <span id="gameTimer">02:00</span>
+                </div>
+                <div class="room-tag" id="roomTag">ROOM: ----</div>
+            </div>
+
+            <div id="p2Panel" class="panel p2-color">
+                <div class="p-name" id="p2Name">SEARCHING...</div>
+                <div class="p-score" id="p2Score">----</div>
+                <div class="p-lives" id="p2Lives"></div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="waitingScreen">
+            <h2 class="glow">AWAITING CHALLENGER</h2>
+            <p>TRANSMIT CODE: <span id="waitCode" style="color:#0ff; font-size: 1.5em;">---</span></p>
+            <div class="loader">📡</div>
+        </div>
+
+        <div id="gameOverModal">
+            <h1 id="winnerText">WINNER</h1>
+            <button id="restartBtn">REMATCH</button>
+        </div>
+
+        <div id="mobileControls">
+            <div class="d-pad">
+                <button id="btnLeft" class="ctrl-btn">◀</button>
+                <button id="btnUp" class="ctrl-btn">▲</button>
+                <button id="btnRight" class="ctrl-btn">▶</button>
+            </div>
+            <div class="action-pad">
+                <button id="btnShoot" class="ctrl-btn fire-btn">●</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> -->
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Neon Asteroids PvP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="loginScreen">
+        <div class="login-card">
+            <div class="card-decor top-left"></div>
+            <div class="card-decor top-right"></div>
+            <div class="card-decor bottom-left"></div>
+            <div class="card-decor bottom-right"></div>
+
+            <h1 class="game-title">ASTEROIDS <span class="highlight">PVP</span></h1>
+            <p class="subtitle">ESTABLISH CONNECTION</p>
+            
+            <div class="input-group">
+                <input type="text" id="usernameInput" placeholder="ENTER PILOT NAME" maxlength="10" autocomplete="off">
+            </div>
+
+            <div class="button-grid">
+                <div class="action-box">
+                    <button id="createBtn" class="cyber-btn">
+                        <span class="btn-text">INITIATE HOST</span>
+                    </button>
+                </div>
+
+                <div class="divider">OR JOIN MISSION</div>
+
+                <div class="action-box join-box">
+                    <input type="text" id="roomCodeInput" placeholder="ENTER CODE" autocomplete="off">
+                    <button id="joinBtn" class="cyber-btn secondary">
+                        <span class="btn-text">JOIN SQUAD</span>
+                    </button>
+                </div>
+            </div>
+            <p id="errorMsg" style="color:#ff0055; margin-top:10px; font-size:0.8rem;"></p>
+        </div>
+        
+        <div class="version-tag">SYS.VER. 3.0 // ONLINE</div>
+    </div>
+
+    <div id="gameUI" style="display: none;">
+        <div id="hud">
+            <div id="p1Panel" class="panel p1-color">
+                <div class="p-name" id="p1Name">PILOT 1</div>
+                <div class="p-score" id="p1Score">0000</div>
+                <div class="p-lives" id="p1Lives">❤️❤️❤️❤️❤️</div>
+            </div>
+
+            <div id="timerPanel">
+                <div class="timer-box"><span id="gameTimer">02:00</span></div>
+                <div class="room-tag" id="roomTag">ROOM: ----</div>
+            </div>
+
+            <div id="p2Panel" class="panel p2-color">
+                <div class="p-name" id="p2Name">SEARCHING...</div>
+                <div class="p-score" id="p2Score">----</div>
+                <div class="p-lives" id="p2Lives"></div>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="waitingScreen">
+            <h2 class="glow">AWAITING LINK</h2>
+            <p>TRANSMISSION CODE: <span id="waitCode" style="color:#0ff; font-size: 1.5em;">---</span></p>
+            <div class="loader">📡</div>
+        </div>
+
+        <div id="gameOverModal">
+            <h1 id="winnerText">MISSION END</h1>
+            <button id="restartBtn" class="cyber-btn">RE-DEPLOY</button>
+        </div>
+
+        <div id="mobileControls">
+            <div class="d-pad">
+                <button id="btnLeft" class="ctrl-btn">◀</button>
+                <button id="btnUp" class="ctrl-btn">▲</button>
+                <button id="btnRight" class="ctrl-btn">▶</button>
+            </div>
+            <div class="action-pad">
+                <button id="btnShoot" class="ctrl-btn fire-btn">●</button>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
