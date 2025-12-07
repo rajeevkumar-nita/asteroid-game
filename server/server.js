@@ -486,10 +486,10 @@ setInterval(() => {
 
             // --- NEW: BORDER LOCK (WALLS) ---
             // Ship Screen ke bahar nahi jayega
-            if (p.x < 20) p.x = 20;         // Left Wall
-            if (p.x > 780) p.x = 780;       // Right Wall (800 - 20)
-            if (p.y < 20) p.y = 20;         // Top Wall
-            if (p.y > 580) p.y = 580;       // Bottom Wall (600 - 20)
+            if (p.x < 50) p.x = 50;         // Left Wall
+            if (p.x > 750) p.x = 750;       // Right Wall (800 - 20)
+            if (p.y < 50) p.y = 50;         // Top Wall
+            if (p.y > 550) p.y = 550;       // Bottom Wall (600 - 20)
         }
 
         // Win Logic
