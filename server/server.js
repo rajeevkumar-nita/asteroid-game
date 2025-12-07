@@ -480,8 +480,8 @@ setInterval(() => {
             if (input.left) p.angle -= 0.1;
             if (input.right) p.angle += 0.1;
             if (input.up) {
-                p.x += Math.cos(p.angle) * 5;
-                p.y += Math.sin(p.angle) * 5;
+                p.x += Math.cos(p.angle) * 8;
+                p.y += Math.sin(p.angle) * 8;
             }
 
             // --- NEW: BORDER LOCK (WALLS) ---
