@@ -21,36 +21,32 @@
 //     return result;
 // }
 
-// // --- NEW: JAGGED ASTEROID GENERATOR ---
-// function createAsteroid(lvl = 1) { // lvl logic hata kar random size rakhte hain
-//     const radius = Math.random() * 30 + 15; // Size 15 se 45 ke beech
-    
-//     // Jagged Shape (Vertices) generate karna
+// // Jagged Asteroid Generator
+// function createAsteroid() { 
+//     const radius = Math.random() * 30 + 15; 
 //     const vertices = [];
-//     const numVerts = Math.floor(Math.random() * 5) + 7; // 7 se 12 kone
+//     const numVerts = Math.floor(Math.random() * 5) + 7; 
 //     for (let i = 0; i < numVerts; i++) {
 //         const angle = (i / numVerts) * Math.PI * 2;
-//         // Thoda imperfection add karein taaki patthar asli lage
 //         const dist = radius * (0.8 + Math.random() * 0.4); 
 //         vertices.push({
 //             x: Math.cos(angle) * dist, 
 //             y: Math.sin(angle) * dist
 //         });
 //     }
-
 //     return {
 //         x: Math.random() * 800,
 //         y: Math.random() * 600,
 //         angle: Math.random() * Math.PI * 2,
 //         speed: Math.random() * 2 + 1,
 //         radius: radius,
-//         vertices: vertices // Shape data client ko bhejenge
+//         vertices: vertices
 //     };
 // }
 
 // function initGame() {
 //     const asteroids = [];
-//     for (let i = 0; i < 8; i++) asteroids.push(createAsteroid()); // Thode jyada asteroids
+//     for (let i = 0; i < 8; i++) asteroids.push(createAsteroid());
 //     return {
 //         players: {},
 //         bullets: [],
@@ -68,7 +64,9 @@
 //         state[roomCode] = initGame();
 //         socket.join(roomCode);
 //         state[roomCode].players[socket.id] = {
-//             x: 200, y: 300, angle: 0, score: 0, name: name || "Player 1", lives: 5, eliminated: false
+//             x: 200, y: 300, angle: 0, score: 0, name: name || "Player 1", 
+//             lives: 5, eliminated: false,
+//             currentInputs: { left: false, right: false, up: false } // NEW: Input storage
 //         };
 //         socket.emit('gameCode', roomCode);
 //         socket.emit('init', 1);
@@ -87,27 +85,24 @@
 //         clientRooms[socket.id] = code;
 //         socket.join(code);
 //         state[code].players[socket.id] = {
-//             x: 600, y: 300, angle: Math.PI, score: 0, name: name || "Player 2", lives: 5, eliminated: false
+//             x: 600, y: 300, angle: Math.PI, score: 0, name: name || "Player 2", 
+//             lives: 5, eliminated: false,
+//             currentInputs: { left: false, right: false, up: false } // NEW
 //         };
 //         state[code].active = true; 
 //         socket.emit('gameCode', code);
 //         socket.emit('init', 2);
 //     });
 
+//     // --- UPDATED INPUT HANDLING ---
+//     // Ab ye move nahi karega, bas state save karega
 //     socket.on('input', (inputs) => {
 //         const roomCode = clientRooms[socket.id];
 //         if (!roomCode || !state[roomCode]) return;
-//         const gameState = state[roomCode];
-//         if (!gameState.active || gameState.isOver) return;
-
-//         const p = gameState.players[socket.id];
-//         if (p && !p.eliminated) {
-//             if (inputs.left) p.angle -= 0.1;
-//             if (inputs.right) p.angle += 0.1;
-//             if (inputs.up) {
-//                 p.x += Math.cos(p.angle) * 5;
-//                 p.y += Math.sin(p.angle) * 5;
-//             }
+        
+//         const p = state[roomCode].players[socket.id];
+//         if (p) {
+//             p.currentInputs = inputs; // Sirf status update karo
 //         }
 //     });
 
@@ -119,7 +114,7 @@
 
 //         const p = gameState.players[socket.id];
 //         if (p && !p.eliminated) {
-//             p.score -= 5; // Bullet penalty
+//             p.score -= 5;
 //             gameState.bullets.push({
 //                 x: p.x, y: p.y, angle: p.angle, speed: 10, ownerId: socket.id, life: 60
 //             });
@@ -146,6 +141,7 @@
 //                 p.score = 0;
 //                 p.lives = 5;
 //                 p.eliminated = false;
+//                 p.currentInputs = { left: false, right: false, up: false }; // Reset inputs
 //                 if (positions[idx]) {
 //                     p.x = positions[idx].x;
 //                     p.y = positions[idx].y;
@@ -168,13 +164,33 @@
 //     });
 // });
 
+// // --- GAME LOOP ---
 // setInterval(() => {
 //     for (const roomCode in state) {
 //         const gameState = state[roomCode];
+        
+//         // Agar active nahi hai, to update mat karo (Except rendering data)
 //         if (!gameState.active || gameState.isOver) {
 //             io.to(roomCode).emit('gameState', gameState);
 //             continue;
 //         }
+
+//         // --- NEW: CONTINUOUS MOVEMENT LOGIC ---
+//         // Har frame me check karo ki kiska button daba hua hai
+//         for (const id in gameState.players) {
+//             const p = gameState.players[id];
+//             if (p.eliminated) continue;
+
+//             const input = p.currentInputs || {}; // Safety check
+            
+//             if (input.left) p.angle -= 0.1;
+//             if (input.right) p.angle += 0.1;
+//             if (input.up) {
+//                 p.x += Math.cos(p.angle) * 5;
+//                 p.y += Math.sin(p.angle) * 5;
+//             }
+//         }
+//         // --------------------------------------
 
 //         // Win Logic
 //         const playerIds = Object.keys(gameState.players);
@@ -208,6 +224,7 @@
 
 //         const { players, bullets, asteroids } = gameState;
 
+//         // Asteroids Move
 //         asteroids.forEach(a => {
 //             a.x += Math.cos(a.angle) * a.speed;
 //             a.y += Math.sin(a.angle) * a.speed;
@@ -215,6 +232,7 @@
 //             if (a.y > 650) a.y = -50; if (a.y < -50) a.y = 650;
 //         });
 
+//         // Bullets Move
 //         for (let i = bullets.length - 1; i >= 0; i--) {
 //             const b = bullets[i];
 //             b.x += Math.cos(b.angle) * b.speed;
@@ -225,11 +243,8 @@
 //             for (let j = asteroids.length - 1; j >= 0; j--) {
 //                 const a = asteroids[j];
 //                 if (Math.hypot(b.x - a.x, b.y - a.y) < a.radius) {
-//                     // --- NEW SCORING LOGIC ---
-//                     // Big (>30) = 50 pts, Small (<=30) = 20 pts
 //                     const points = a.radius > 30 ? 50 : 20; 
 //                     if (players[b.ownerId]) players[b.ownerId].score += points;
-                    
 //                     asteroids.splice(j, 1);
 //                     asteroids.push(createAsteroid());
 //                     hit = true; break;
@@ -252,6 +267,7 @@
 //             if (hit || b.life <= 0) bullets.splice(i, 1);
 //         }
 
+//         // Collision: Player vs Asteroid
 //         for (const id in players) {
 //             const p = players[id];
 //             if (p.eliminated) continue;
@@ -305,7 +321,6 @@ function makeId(length) {
     return result;
 }
 
-// Jagged Asteroid Generator
 function createAsteroid() { 
     const radius = Math.random() * 30 + 15; 
     const vertices = [];
@@ -350,7 +365,7 @@ io.on('connection', (socket) => {
         state[roomCode].players[socket.id] = {
             x: 200, y: 300, angle: 0, score: 0, name: name || "Player 1", 
             lives: 5, eliminated: false,
-            currentInputs: { left: false, right: false, up: false } // NEW: Input storage
+            currentInputs: { left: false, right: false, up: false }
         };
         socket.emit('gameCode', roomCode);
         socket.emit('init', 1);
@@ -371,22 +386,19 @@ io.on('connection', (socket) => {
         state[code].players[socket.id] = {
             x: 600, y: 300, angle: Math.PI, score: 0, name: name || "Player 2", 
             lives: 5, eliminated: false,
-            currentInputs: { left: false, right: false, up: false } // NEW
+            currentInputs: { left: false, right: false, up: false }
         };
         state[code].active = true; 
         socket.emit('gameCode', code);
         socket.emit('init', 2);
     });
 
-    // --- UPDATED INPUT HANDLING ---
-    // Ab ye move nahi karega, bas state save karega
     socket.on('input', (inputs) => {
         const roomCode = clientRooms[socket.id];
         if (!roomCode || !state[roomCode]) return;
-        
         const p = state[roomCode].players[socket.id];
         if (p) {
-            p.currentInputs = inputs; // Sirf status update karo
+            p.currentInputs = inputs; 
         }
     });
 
@@ -425,7 +437,7 @@ io.on('connection', (socket) => {
                 p.score = 0;
                 p.lives = 5;
                 p.eliminated = false;
-                p.currentInputs = { left: false, right: false, up: false }; // Reset inputs
+                p.currentInputs = { left: false, right: false, up: false }; 
                 if (positions[idx]) {
                     p.x = positions[idx].x;
                     p.y = positions[idx].y;
@@ -453,19 +465,17 @@ setInterval(() => {
     for (const roomCode in state) {
         const gameState = state[roomCode];
         
-        // Agar active nahi hai, to update mat karo (Except rendering data)
         if (!gameState.active || gameState.isOver) {
             io.to(roomCode).emit('gameState', gameState);
             continue;
         }
 
-        // --- NEW: CONTINUOUS MOVEMENT LOGIC ---
-        // Har frame me check karo ki kiska button daba hua hai
+        // --- CONTINUOUS MOVEMENT ---
         for (const id in gameState.players) {
             const p = gameState.players[id];
             if (p.eliminated) continue;
 
-            const input = p.currentInputs || {}; // Safety check
+            const input = p.currentInputs || {}; 
             
             if (input.left) p.angle -= 0.1;
             if (input.right) p.angle += 0.1;
@@ -473,8 +483,14 @@ setInterval(() => {
                 p.x += Math.cos(p.angle) * 5;
                 p.y += Math.sin(p.angle) * 5;
             }
+
+            // --- NEW: BORDER LOCK (WALLS) ---
+            // Ship Screen ke bahar nahi jayega
+            if (p.x < 20) p.x = 20;         // Left Wall
+            if (p.x > 780) p.x = 780;       // Right Wall (800 - 20)
+            if (p.y < 20) p.y = 20;         // Top Wall
+            if (p.y > 580) p.y = 580;       // Bottom Wall (600 - 20)
         }
-        // --------------------------------------
 
         // Win Logic
         const playerIds = Object.keys(gameState.players);
@@ -508,7 +524,7 @@ setInterval(() => {
 
         const { players, bullets, asteroids } = gameState;
 
-        // Asteroids Move
+        // Asteroids Move (Ye wrap honge, yaani diwar ke aar-paar jayenge)
         asteroids.forEach(a => {
             a.x += Math.cos(a.angle) * a.speed;
             a.y += Math.sin(a.angle) * a.speed;
